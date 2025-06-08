@@ -1,3 +1,5 @@
+C:\Program Files\MySQL\MySQL Server 8.0\bin
+
 #########################################
     mysql 접근하기 
 #########################################
@@ -16,7 +18,7 @@ create database mydb default character set utf8 collate utf8_general_ci;
 ##########################################################################
 2.계정생성하기 
 ##########################################################################
-
+-- localhost 이면 local에서만 접근되는 계정임. 원격에서 접근하고 싶다. %를 사용해야 한다.  
 create user 'user01'@'localhost'  identified by '1234';
 
 ###########################################################################
@@ -47,6 +49,26 @@ show databases;  -- user01 계정이 접근권한있는 디비만 보인다.
 use mydb;   -- 사용자 db 옮기기
 
 show tables;
+
+--  varchar -> variant char 데이터 크기에 따라서 잡히는 메모리 크기가 다르다. (최대 1000 byte까지만) 
+--  text -> 2G, longtext->4G 
+-- char :고정된 길이를 확보한다. 예) char(10) 일 경우에 성별하나만 저장한다면 'Y         ' 형태로 저장된다. 나머지 메모리를 공백으로 
+--                                            varchar(10)일 경우에 성별하나만 저장한다면 'Y' 형태로 저장된다. varchar는데이터 앞부분에 실제 데이터 크기가 들어간다
+                                              성별이나 우편번호 사원번호 같이 고정된크기는 char가 좋다 
+              
+mdsql은 만건(10만건이상) 넘어가면 튜닝 해야 한다. 
+오라클은 최소 100만건 이상일때
+
+ 초보개발자들의 단점, join이나 서브쿼리, union등을 잘못쓴다. 
+ 데이터 전체를 자바로 읽어와서 자바에서 for문돌려서 join도 하고  union도 하고 
+여러번 읽고 쓴다. 
+
+
+
+
+
+
+
 
 -- 전체 목록 확인하기 
 select * from emp; 
@@ -155,14 +177,15 @@ SELECT * FROM EMP WHERE empno!=7369 and empno!=7566 and empno!=7900;
 
 SELECT * FROM EMP WHERE empno not IN(7369, 7566, 7900);
 
--- like  연산자 
+-- like  연산자 _(한글자)  %(여러글자)
 
 SELECT * FROM EMP WHERE ENAME LIKE 'F%';
 
 select * from emp where ename like 'f_rd';
 
-SELECT * FROM EMP WHERE ENAME LIKE '%A%';
-
+SELECT * FROM EMP WHERE ENAME LIKE '%A%'; -- like 사용때 %가 앞에 오면 인덱스를 타지 않는다 
+                                          -- fulltext 인덱스를 만들어야 한다. 
+                                          -- like '%검색어%' 인덱스 사용 불가 
 SELECT * FROM EMP WHERE ENAME LIKE '%N';
 
 SELECT * FROM EMP WHERE ENAME LIKE '_A%';
@@ -199,7 +222,16 @@ insert into emp(empno, ename) values(8000, '임꺽정');
 
 insert into emp(empno, ename) values(8001, '임꺽정');
 insert into emp(empno, ename) values(8002, 'Tom''s');
-insert into emp(empno, ename) values(8003, '''장길산산''');
+insert into emp(empno, ename) values(8003, '''장길산''');
+
+-- primary key추가 /외부키 추가 
+alter table emp add constraint primary key(empno);
+alter table dept add constraint primary key (deptno);
+alter table emp add constraint fk_emp_dept foreign key(deptno)  references dept(deptno);
+
+select * from information_schema.table_constraints where table_name = 'emp';
+
+
 
 
 -- 특정 직원(SCOTT)의 급여를 3500으로 변경
@@ -219,24 +251,40 @@ SELECT E.EMPNO, E.ENAME, E.JOB, E.sal, D.DNAME, D.LOC
 FROM EMP E
 JOIN DEPT D ON E.DEPTNO = D.DEPTNO;
 
--- 서브쿼리 
-SELECT E.EMPNO, E.ENAME, E.JOB, E.sal, (select dname from dept B where E.deptno=B.deptno) dname
+-- 서브쿼리 :오라클에서는 서브쿼리가 내부적으로 캐시가 이뤄지기때문에 때로는 조인보다 빠를수 있다. 
+--          스칼라서브쿼리는 아주 예외적일때만, mysql은 캐시도 안된다.  
+-- EMP는 부서코드만 , 부서명은 DEPT가 
+SELECT E.EMPNO, E.ENAME, E.JOB, E.sal, E.deptno  
+      ,(select dname from dept B where E.deptno=B.deptno) dname
+      ,(select loc from dept B where E.deptno=B.deptno) loc
 FROM EMP E;
 
+-- 다중행 서브쿼리 , from절에서 많이 사용한다. 서브쿼리에 반드시 aliasing을 해줘야 한다.
 SELECT * FROM 
-( SELECT EMPNO,, ENAME, SAL FROM EMP WHERE DEPTNO IN (10, 20)) A;
+( SELECT EMPNO, ENAME, SAL FROM EMP WHERE DEPTNO IN (10, 20)) A;
 
+-- main화면, 게임 
 
 SELECT  deptno, avg(SAL) 
 FROM EMP
 group by deptno; 
 
-select ename, E.sal, A.sal
+select E.ename, E.sal, A.sal
 from emp E
 left outer join (
   SELECT  deptno, avg(SAL)  sal 
   FROM EMP
   group by deptno) A on A.deptno=E.deptno; 
+
+-- 분석함수 : 그룹함수에 over() 가 붙는다. group 함수는 실행결과 개수가 레코드 전체 개수보다 작게 나온다.
+-- 분석함수는 여러개의 결과를 내보낸다. mysql 8 이상부터 지원한다. 
+select E.ename, E.sal, sum(E.sal) over() total 
+from emp E;
+
+select E.ename, E.sal, 
+  sum(E.sal) over(partition by deptno) deptsum, 
+  sum(E.sal) over() total 
+from emp E;
 
 
 -- SCOTT보다 높은 급여를 받는 직원 조회
@@ -261,15 +309,22 @@ SELECT E.EMPNO, E.ENAME, E.JOB, E.sal, D.DNAME, D.LOC
 FROM EMP E
 inner JOIN DEPT D ON E.DEPTNO = D.DEPTNO;
 
+insert into emp(empno, ename) values(8000, '홍길동');
+insert into emp(empno, ename) values(8001, '고길동');
+
 SELECT E.EMPNO, E.ENAME, E.JOB, E.sal, D.DNAME, D.LOC
-FROM EMP E
+FROM EMP E  -- from에 가까운 테이블이 left이다. left테이블 내용이 다 나온다. 
 left outer  JOIN DEPT D ON E.DEPTNO = D.DEPTNO;
+
+insert into dept(deptno, dname) values(50, '개발1부');
+insert into dept(deptno, dname) values(60, '개발2부');
 
 SELECT E.EMPNO, E.ENAME, E.JOB, E.sal, D.DNAME, D.LOC
 FROM EMP E
 right outer JOIN DEPT D ON E.DEPTNO = D.DEPTNO;
 
--- full outer 없음 - 
+-- full outer 없음 - ansi표준, 
+-- union(중복제거) , union all(중복제거 안함) 
 SELECT E.EMPNO, E.ENAME, E.JOB, E.sal, D.DNAME, D.LOC
 FROM EMP E
 left outer  JOIN DEPT D ON E.DEPTNO = D.DEPTNO
@@ -278,10 +333,12 @@ SELECT E.EMPNO, E.ENAME, E.JOB, E.sal, D.DNAME, D.LOC
 FROM EMP E
 right outer JOIN DEPT D ON E.DEPTNO = D.DEPTNO;
 
+
+
 -- cross 
 SELECT E.EMPNO, E.ENAME, E.JOB, E.sal, D.DNAME, D.LOC
 FROM EMP E
-cross JOIN DEPT D;
+cross JOIN DEPT D;  -- 조인 조건이 없음 
 
 SELECT 
     e.EMPNO AS emp_no,
@@ -299,6 +356,8 @@ select * from emp limit 6, 3;
 
 use mydb;
 
+-- 오라클은 over(order by 필드명 asc, 필드명 desc) : 외부정렬이된다. 추가적인 order by 안해도 된다.
+-- mysql 은  over(order by 필드명 asc, 필드명 desc) 연산순서 결정
 SELECT
     empno,
     deptno,
@@ -306,6 +365,7 @@ SELECT
     RANK() OVER (ORDER BY sal DESC) AS salary_rank
 FROM emp;
 
+-- partition by : group by
 SELECT
     empno,
     deptno,
@@ -337,7 +397,8 @@ left outer join (
   FROM EMP
   group by deptno) A on A.deptno=E.deptno; 
 
--- 경우에 따라 분석함수가 빠를수도 있으나 단순 집계일때는 아래가 빠르다다
+-- 오라클의 경우는 분석함수가 확실히 빠르다. mysql의 경우는 group by 더 낫다. 
+-- 경우에 따라 분석함수가 빠를수도 있으나 단순 집계일때는 아래가 빠르다
 explain analyze select empno, ename, sal, sum(sal) over(partition by deptno) as total
 from emp
 order by empno asc;

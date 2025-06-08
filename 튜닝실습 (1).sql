@@ -433,7 +433,7 @@ show index from 사원;
 
 #################### unique 제약조건 부여하기 ##################
 
--- 컬럼추가 (오래걸림)
+-- 컬럼추가 (오래걸림) 이메일이나 전화번호 같은경우우에 unique 제약조건주고 unique인덱스를 붙이자 콘솔창은 ctrl+enter복사 마우스 오른쪽 버튼 붙여넣기
 alter table 사원 add column 사원번호2 int;
 update 사원 set 사원번호2 = 사원번호;
 
@@ -452,7 +452,7 @@ SELECT *
 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS
 WHERE CONSTRAINT_SCHEMA = 'tuning';
 
-CREATE UNIQUE INDEX idx_users_email ON 사원(사원번호2);
+-- CREATE UNIQUE INDEX idx_users_email ON 사원(사원번호2); 이미 만들었음
 
 MySQL [tuning]> explain select * from 사원 where 사원번호2 = 100001;
 +----+-------------+--------+------------+-------+--------------------------------------+----------------------+---------+-------+------+----------+-------+
@@ -466,7 +466,7 @@ MySQL [tuning]> explain select * from 사원 where 사원번호2 = 100001;
 -- ######### 일반인덱스 ################
 -- 데이터가 unqiue 제약조건을 만족하지 못할경우에 일반 인덱스를 부여한다 
 
---  기본문법 : ALTER TABLE 테이블명 ADD INDEX 인덱스이름 (컬럼명);
+-- 기본문법 : ALTER TABLE 테이블명 ADD INDEX 인덱스이름 (컬럼명);
 
 alter table 사원 add index I_입사일자(입사일자);  -- 인덱스 추가하기 
 
@@ -499,8 +499,8 @@ update 사원 set 사원번호3 = 사원번호;
 alter table 사원 add constraint unique_사원번호3 unique(사원번호3);
 
 desc 사원;
-explain select * from 사원 where 사원번호3=30001;  -- ALL
-explain select * from 사원 where 사원번호3='30001'; -- const
+explain select * from 사원 where 사원번호3=30001;  -- type=ALL
+explain select * from 사원 where 사원번호3='30001'; -- type=const
 
 
 -- 인덱스가 없으므로 full scan을 한다 
@@ -514,13 +514,15 @@ explain select * from 사원 where 이름 like 'Tz%'; -- range인덱스
 
 explain select * from 사원 where 이름 like '%tan'; -- not index full scan을 한다 
 
+-- 예전방식 가급적 필드를 잘게 쪼개서 %문자열 상황이 안되도록 하는 방법을 취함
+-- fulltext인덱스를 만들러서 사용하자자
 #####################
 fulltext 인덱스 - like연산자의 '%문자열' 이 인덱스를 안타니까 대신 만들었음 
 #######################
 -- fulltext 인덱스를 생성해야 한다. 
-drop index I_이름 on 사원;
+drop index I_이름 on 사원; -- 이전 인덱스를 삭제하자자
 
-SHOW TABLE STATUS LIKE '사원';
+SHOW TABLE STATUS LIKE '사원';-- 테이블의 상세 정보확인
 -- full text 인덱스 만들기 
 ALTER TABLE 사원 ADD FULLTEXT(이름);
 

@@ -1,0 +1,350 @@
+#########################################
+    mysql 접근하기 
+#########################################
+
+mysql -u root -p --port=3306
+Enter your password : 1234
+
+
+##########################################################################
+1.디비생성하기 -- 한글이 깨지면 안된다. 한글의 경우 문자셋을 반드시 이렇게 맞춰야 한다 
+##########################################################################
+
+create database mydb default character set utf8 collate utf8_general_ci;
+
+
+##########################################################################
+2.계정생성하기 
+##########################################################################
+
+create user 'user01'@'localhost'  identified by '1234';
+
+###########################################################################
+3. 접근권한부여하기 (localhost만 가능하다 )
+###########################################################################
+
+grant all privileges  on mydb.* TO user01@localhost; 
+
+exit;
+
+
+mysql -u user01 -p --port=3306
+
+
+4.테스트데이터 생성하기
+
+demobld.sql이 있는 폴더로 이동한다 
+cmd 
+cd C:\내자료\MYSQL\SQLtune-main\SQLtune-main\data    이 폴더에 demobld.sql이 필요하다 
+
+이 파일이 있는 디렉토리로 이동해야 한다 
+
+mysql -u user01 -p < demobld.sql         
+mysql -u user01 -p  --mysql 실행하기    
+
+show databases;  -- user01 계정이 접근권한있는 디비만 보인다. 
+
+use mydb;   -- 사용자 db 옮기기
+
+show tables;
+
+-- 전체 목록 확인하기 
+select * from emp; 
+
+-- 실행계획 확인하기 
+explain select * from emp;
+
+
+-- 전체 직원 조회
+SELECT * FROM EMP;
+
+-- now함수 호출하기 -- 현재 날짜와 시간을 알려준다 
+select now(); 
+
+--전체 부서 확인하기 
+SELECT * FROM dept; 
+
+-- 특정 필드만 확인하기 
+select empno, ename  from emp;
+
+-- 산술연산하기 : 별도의 aliasing 을 지정하지 않으면 수학 수식이 필드명으로 출력된다. 
+SELECT ename, sal, sal*12 FROM emp;
+
+SELECT ename, sal, sal*12 as year_salary FROM emp; 
+
+-- 산술 연산시 null값이 있을 경우에 
+SELECT ename, sal, job, comm, sal*12, sal*12+comm   FROM emp;
+
+-- null값에 대한 별도 처리가 필요하다 . i벼fnull(필드명, 기본값)
+
+select ename, comm, sal*12+comm, ifnull(comm, 0), sal*12+ifnull(comm, 0) from emp;
+
+-- alais 붙이기
+select ename, sal*12+ifnull(comm, 0) as Annsal from emp;
+
+-- 필드명에 공백이나 특수문자 사용시 : 프로그램 안에서는 사용하면 안됨  
+select ename, sal*12+ifnull(comm, 0) "A n n s a l" from emp;
+
+-- 별명에 한글 쓸때 
+select ename, sal*12+ifnull(comm, 0) "연봉" from emp;
+
+-- 문자열 연결하기 : concat 함수
+select concat(ename, '님의 급여는 ' , sal, '입니다')  salinfo from emp;
+
+-- distinct 
+select distinct deptno from emp;
+
+select distinct deptno, ename  from emp;
+
+
+-- where절, order by절 
+SELECT EMPNO, ENAME, SAL FROM EMP WHERE SAL=3000;
+SELECT EMPNO, ENAME, SAL FROM EMP WHERE SAL>3000;
+SELECT EMPNO, ENAME, SAL FROM EMP WHERE SAL<3000;
+SELECT EMPNO, ENAME, SAL FROM EMP WHERE SAL>=3000;
+SELECT EMPNO, ENAME, SAL FROM EMP WHERE SAL<=3000;
+SELECT EMPNO, ENAME, SAL FROM EMP WHERE SAL!=3000;
+SELECT EMPNO, ENAME, SAL FROM EMP WHERE SAL<>3000;  -- !=  <>  같은 연산자임 
+
+
+
+-- 특정 직책(JOB)이 'MANAGER'인 직원 조회
+SELECT EMPNO, ENAME, JOB, sal FROM EMP WHERE JOB = 'MANAGER';
+
+-- 급여가 2500 이상인 직원 조회
+SELECT ENAME, JOB, sal FROM EMP WHERE sal >= 2500;
+
+-- 부서번호가 10번인 사람 정보 
+SELECT *  FROM EMP  WHERE DEPTNO=10;
+
+-- 특정 부서(DEPTNO 30)의 직원 조회
+SELECT ENAME, JOB, DEPTNO FROM EMP WHERE DEPTNO = 30;
+
+-- 입사일이 2021년 이후인 직원 조회
+SELECT ENAME, HIREDATE FROM EMP WHERE HIREDATE >= '2021-01-01';
+
+--   문자열의 경우 '' 로 감싼다. mysql의 특징 : 데이터의 대소문자도 가리지 않는다  
+SELECT EMPNO, ENAME, SAL  FROM EMP  WHERE ENAME='FORD';
+SELECT EMPNO, ENAME, SAL  FROM EMP  WHERE ENAME='ford';
+SELECT EMPNO, ENAME, SAL  FROM EMP  WHERE ENAME='Ford';
+
+-- 논리연산자 (and, or, not)
+-- 부서번호가 10이면서 job 이 manager 인 경우
+SELECT * FROM emp WHERE deptno=10 AND job='MANAGER';
+
+-- 부서번호가 10이거나 job 이 manager 인 경우
+SELECT * FROM emp WHERE deptno=10 OR job='MANAGER';
+
+-- 10번 부서가 아닌 사람들의정보 
+SELECT * FROM emp WHERE NOT deptno=10;
+
+-- between and 연산자 
+SELECT * FROM EMP  WHERE SAL>=2000 AND SAL<=3000;
+
+SELECT *   FROM EMP   WHERE SAL BETWEEN 2000 AND 3000;
+
+-- 날짜도 가능함 
+select * from emp where hiredate between '1981-01-01' and '1981-12-31';
+
+-- IN 연산자 : = or = or = or 
+SELECT * FROM EMP WHERE empno=7369 OR empno=7566 or empno=7900;
+
+SELECT * FROM EMP WHERE empno IN(7369, 7566, 7900);
+
+SELECT * FROM EMP WHERE empno!=7369 and empno!=7566 and empno!=7900;
+
+SELECT * FROM EMP WHERE empno not IN(7369, 7566, 7900);
+
+-- like  연산자 
+
+SELECT * FROM EMP WHERE ENAME LIKE 'F%';
+
+select * from emp where ename like 'f_rd';
+
+SELECT * FROM EMP WHERE ENAME LIKE '%A%';
+
+SELECT * FROM EMP WHERE ENAME LIKE '%N';
+
+SELECT * FROM EMP WHERE ENAME LIKE '_A%';
+
+SELECT * FROM EMP WHERE ENAME LIKE '__A%';   
+
+SELECT * FROM EMP WHERE ENAME NOT LIKE '%A%';
+
+-- 조건절에 null값이 있을 경우에 
+SELECT * FROM EMP  WHERE COMM=NULL;
+
+SELECT * FROM EMP  WHERE COMM is null;
+
+SELECT * FROM EMP  WHERE COMM is not null;
+
+-- 정렬
+SELECT * FROM EMP ORDER BY SAL DESC, ENAME ASC;
+
+-- insert 
+
+insert into emp(empno, ename) values(8000, '홍길동');
+insert into emp(empno, ename) values(8000, '임꺽정');
+-- empno에 primary key가 없어서 insert 시 오류가 발생하지 않음 
+-- 현재는 empno 값이 중복되어서 primary key 지정을 못함 
+alter table emp add constraint primary key(empno);
+
+-- ERROR 1062 (23000): Duplicate entry '8000' for key 'emp.PRIMARY'
+
+
+delete from emp where ename='임꺽정';
+alter table emp add constraint primary key(empno);
+insert into emp(empno, ename) values(8000, '임꺽정');
+-- ERROR 1062 (23000): Duplicate entry '8000' for key 'emp.PRIMARY' 
+
+insert into emp(empno, ename) values(8001, '임꺽정');
+insert into emp(empno, ename) values(8002, 'Tom''s');
+insert into emp(empno, ename) values(8003, '''장길산산''');
+
+
+-- 특정 직원(SCOTT)의 급여를 3500으로 변경
+UPDATE EMP SET sal = 3500 WHERE ENAME = 'SCOTT';
+
+-- 전체 직원의 급여를 10% 인상
+UPDATE EMP SET sal = sal * 1.10;
+
+-- 특정 직원(ENAME이 'MARTIN') 삭제
+DELETE FROM EMP WHERE ENAME = 'MARTIN';
+
+-- 급여가 1200 이하인 직원 삭제
+DELETE FROM EMP WHERE sal <= 1200;
+
+-- 직원과 부서 정보 함께 조회 (JOIN)
+SELECT E.EMPNO, E.ENAME, E.JOB, E.sal, D.DNAME, D.LOC
+FROM EMP E
+JOIN DEPT D ON E.DEPTNO = D.DEPTNO;
+
+-- 서브쿼리 
+SELECT E.EMPNO, E.ENAME, E.JOB, E.sal, (select dname from dept B where E.deptno=B.deptno) dname
+FROM EMP E;
+
+SELECT * FROM 
+( SELECT EMPNO,, ENAME, SAL FROM EMP WHERE DEPTNO IN (10, 20)) A;
+
+
+SELECT  deptno, avg(SAL) 
+FROM EMP
+group by deptno; 
+
+select ename, E.sal, A.sal
+from emp E
+left outer join (
+  SELECT  deptno, avg(SAL)  sal 
+  FROM EMP
+  group by deptno) A on A.deptno=E.deptno; 
+
+
+-- SCOTT보다 높은 급여를 받는 직원 조회
+SELECT EMPNO, ENAME, JOB, sal
+FROM EMP
+WHERE sal > (SELECT sal FROM EMP WHERE ENAME = 'SCOTT');
+
+-- 부서별 최고 급여 직원 조회
+SELECT EMPNO, ENAME, sal, DEPTNO
+FROM EMP
+WHERE sal = (SELECT MAX(sal) FROM EMP WHERE DEPTNO = EMP.DEPTNO);
+
+-- join 예
+INNER JOIN	두 테이블 모두에 일치하는 값이 있는 행만 가져옴
+LEFT JOIN (또는 LEFT OUTER JOIN)	왼쪽 테이블의 모든 행 + 오른쪽 일치하는 값
+RIGHT JOIN (또는 RIGHT OUTER JOIN)	오른쪽 테이블의 모든 행 + 왼쪽 일치하는 값
+FULL OUTER JOIN	두 테이블의 모든 행 (MySQL에서는 직접 지원 X → UNION으로 흉내냄)
+CROSS JOIN	두 테이블의 모든 조합 (데카르트 곱)
+SELF JOIN	같은 테이블을 스스로와 JOIN
+
+SELECT E.EMPNO, E.ENAME, E.JOB, E.sal, D.DNAME, D.LOC
+FROM EMP E
+inner JOIN DEPT D ON E.DEPTNO = D.DEPTNO;
+
+SELECT E.EMPNO, E.ENAME, E.JOB, E.sal, D.DNAME, D.LOC
+FROM EMP E
+left outer  JOIN DEPT D ON E.DEPTNO = D.DEPTNO;
+
+SELECT E.EMPNO, E.ENAME, E.JOB, E.sal, D.DNAME, D.LOC
+FROM EMP E
+right outer JOIN DEPT D ON E.DEPTNO = D.DEPTNO;
+
+-- full outer 없음 - 
+SELECT E.EMPNO, E.ENAME, E.JOB, E.sal, D.DNAME, D.LOC
+FROM EMP E
+left outer  JOIN DEPT D ON E.DEPTNO = D.DEPTNO
+union 
+SELECT E.EMPNO, E.ENAME, E.JOB, E.sal, D.DNAME, D.LOC
+FROM EMP E
+right outer JOIN DEPT D ON E.DEPTNO = D.DEPTNO;
+
+-- cross 
+SELECT E.EMPNO, E.ENAME, E.JOB, E.sal, D.DNAME, D.LOC
+FROM EMP E
+cross JOIN DEPT D;
+
+SELECT 
+    e.EMPNO AS emp_no,
+    e.ENAME AS employee,
+    m.ENAME AS manager
+FROM EMP e
+LEFT JOIN EMP m ON e.MGR = m.EMPNO;
+
+-- 페이징 쿼리 보기 
+select * from emp limit 0, 3;
+select * from emp limit 3, 3;
+select * from emp limit 6, 3;
+
+-- 분석함수 
+
+use mydb;
+
+SELECT
+    empno,
+    deptno,
+    sal,
+    RANK() OVER (ORDER BY sal DESC) AS salary_rank
+FROM emp;
+
+SELECT
+    empno,
+    deptno,
+    sal,
+    RANK() OVER (PARTITION BY deptno ORDER BY ifnull(sal, 0) DESC) AS salary_rank
+FROM emp;
+
+SELECT  empno,  sal,
+    LAG(sal) OVER (ORDER BY empno) AS previous_salary,
+    LEAD(sal) OVER (ORDER BY empno) AS next_salary
+FROM emp;
+
+
+select empno, ename, sal, sum(sal) over() from emp;
+
+select empno, ename, sal, sum(sal) over(partition by deptno) from emp;
+
+-- order by empno desc : 계산순서에 영향 외부 루프에 영향을 미치지 않는다.(오라클과 차이)
+select empno, ename, sal, sum(sal) over(partition by deptno order by empno desc) from emp;
+select empno, ename, sal, sum(sal) over(partition by deptno) as total
+from emp
+order by empno asc;
+
+
+select empno, ename, E.sal, A.sal total
+from emp E
+left outer join (
+  SELECT  deptno, sum(SAL)  sal 
+  FROM EMP
+  group by deptno) A on A.deptno=E.deptno; 
+
+-- 경우에 따라 분석함수가 빠를수도 있으나 단순 집계일때는 아래가 빠르다다
+explain analyze select empno, ename, sal, sum(sal) over(partition by deptno) as total
+from emp
+order by empno asc;
+
+explain analyze select empno, ename, E.sal, A.sal total
+from emp E
+left outer join (
+  SELECT  deptno, sum(SAL)  sal 
+  FROM EMP
+  group by deptno) A on A.deptno=E.deptno; 

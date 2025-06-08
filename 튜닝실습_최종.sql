@@ -11,7 +11,7 @@ create user 'user01'@'localhost'  identified by '1234';
 create user 'user01'@'%'  identified by '1234';  -- 원격 계정을 만들때 
 
 ###########################################################################
-3. 접근권한부여하기
+3. 접근권한부여하기 
 ###########################################################################
 
 grant all privileges  on mydb.* TO user01@localhost;
@@ -23,7 +23,7 @@ FLUSH PRIVILEGES;
 
 exit;
 
-#설정도 변경해야 할 수 있다. ubuntu일 경우
+#설정도 변경해야 할 수 있다. ubuntu
 linux 설정파일 위치 : /etc/mysql/my.cnf 또는 /etc/my.cnf
 [mysqld]
 bind-address = 0.0.0.0    #0.0.0.0 은 모든 아이피의 접근을 허용한다는 의미임 
@@ -53,7 +53,7 @@ mysqldump -u root -p --all-databases > all_backup_20250607.sql
 mysqldump -u root -p mydb > mydb_backup.sql
 
 특정 테이블만 백업 
-mysqldump -u root -p mydb employees departments > emp_dept_backup.sql
+mysqldump -u root -p mydb emp dept > emp_dept_backup.sql
 
 구조만 백업 
 mysqldump -u root -p -d mydb > schema_backup.sql
@@ -91,8 +91,8 @@ mysql -u root -p world < world_backup.sql
 -- 반드시 패스워드나 포트번호를 주지는 않아도 된다. 단 포트번호가 기본포트번호인 3306이 아니라면 따로 주어야 한다 
 -- mysql이 이미 설치되어 있거나 mariadb가 설치되어 있는 경우에는 포트번호가 다르게 설치될 수 있어서 설치시 주의를 해야 한다 
 -- 
---  cd C:\Program Files\MySQL\MySQL Server 8.4\bin
---  Program Files\MySQL\MySQL Server 8.4\bin $ mysql -uroot -p --port 3306
+--  cd C:\Program Files\MySQL\MySQL Server 8.0\bin
+--  Program Files\MySQL\MySQL Server 8.0\bin $ mysql -uroot -p --port 3306
 
 * 결과
 Welcome to the MySQL monitor.  Commands end with ; or \g.
@@ -119,8 +119,8 @@ show databases;  -- 시스템이 가지고 있는 데이터베이스를 보여�
 +--------------------+
 | information_schema |
 | mysql              |
-| performance_schema | 성능체크가능능
-| sys                | 시스템관련
+| performance_schema |
+| sys                |
 +--------------------+
 5 rows in set (0.01 sec)
 
@@ -222,7 +222,7 @@ desc 사원;
 
 #데이터를 점검해보자 -- 데이터가 많으므로 앞의 10개만 확인해보자 
 select * from 사원  limit 10; 
-workbench에서도 기본적으로 1000개만 확인
+
 select * from 사원  order by 사원번호 desc limit 10; 
 
 -- 10001 ~ 499999 범위에 데이터가 존재 한다 
@@ -261,8 +261,8 @@ Extra: NULL - 추가적인 작업이 필요하지 않다는 의미입니다.
 ====================================================================================
 == 3.2.1 ===========================================================================
 ====================================================================================
-* 인덱스 범위 검색 
--- 아무리 primary key라고 하더라도 여러개 - range검색을 한다
+* 인덱스 범위 검색  
+-- 아무리 PRIMARY KEY라고 하더라도 여러개 - RANGE 검색을 한다다
 EXPLAIN  SELECT * FROM 사원 WHERE 사원번호 BETWEEN 100001 AND 200000;
 
 * 결과
@@ -276,7 +276,7 @@ EXPLAIN  SELECT * FROM 사원 WHERE 사원번호 BETWEEN 100001 AND 200000;
 type 이 range이다 범위검색을 말한다. 특정범위를 지정한다.   
 ====================================================================================
 * SQL
-show index from 사원; -- 인덱스 확인명령어 show로 들어가는 모든 명령어는 mysql에서만 
+show index from 사원; -- 인덱스 확인명령어, MYSQL에서만 
 
 +--------+------------+----------------+--------------+--------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
 | Table  | Non_unique | Key_name       | Seq_in_index | Column_name  | Collation | Cardinality | Sub_part | Packed | Null | Index_type | Comment | Index_comment | Visible | Expression |
@@ -320,7 +320,7 @@ alter table 사원 drop index I_성별_성;
 
 show index from 사원;
 
--- 인덱스가 없으면 full table scan(type=all)
+-- 인덱스가 없으면 full table scan (type=all)
 EXPLAIN SELECT * FROM 사원 WHERE 사원번호 = 10000;
 
 EXPLAIN SELECT * FROM 사원 WHERE 사원번호 BETWEEN 100001 AND 200000;
@@ -381,14 +381,13 @@ WHERE 절이 사용되었다는 의미입니다.
 하지만 인덱스를 사용하지 않고 있기 때문에 성능이 좋지 않을 가능성이 큽니다.
 
 #### primary key 추가 ####################
-
-ALTER TABLE 사원 ADD PRIMARY KEY (사원번호);-- mysql과 oracle이 다르다
+ALTER TABLE 사원 ADD PRIMARY KEY (사원번호); -- mysql과 oracle가 다르다다
 show index from 사원;
 
--- mysql이 실행계획 결과가 데이더가 없으면 no matching row in const table 이렇게 나온다
-explain select * from 사원 where 사원번호=10000; --  no matching row in const table
+-- mysql이 실행계획 결과가 데이터가 없으면 이렇게 나올다 
+no matching row in const table 
 
-explain select * from 사원 where 사원번호=10001;
+explain select * from 사원 where 사원번호=100000;
 
 EXPLAIN SELECT * FROM 사원 WHERE 사원번호 BETWEEN 100001 AND 200000;
 
@@ -415,9 +414,8 @@ MySQL [tuning]> explain select * from 사원 where 사원번호<100000;
 
 explain select * from 사원 where 사원번호=100000 or  사원번호=100001 or  사원번호=100003;
 
-#in 연산자도 범위 연산자이므로 range 검색을 진행한다. 
+-- in 연산자도 범위 연산자이므로 range 검색을 진행한다. 
 explain select * from 사원 where 사원번호 in (100000,20000, 300000);
-
 
 explain select * from 사원 order by  사원번호;
 -- index - 모든 인덱스를 순차검색한다 
@@ -433,7 +431,9 @@ show index from 사원;
 
 #################### unique 제약조건 부여하기 ##################
 
--- 컬럼추가 (오래걸림) 이메일이나 전화번호 같은경우우에 unique 제약조건주고 unique인덱스를 붙이자 콘솔창은 ctrl+enter복사 마우스 오른쪽 버튼 붙여넣기
+-- 컬럼추가 (오래걸림)-- 이메일이나 전화번호 같은경우에 UNIQAUE 제약조건주고
+-- UNIQUE 인덱스를 붙이자 
+-- 콘솔창은 CTRL-ENTER 복사   마우스 오른쪽버튼 - 붙여넣기 
 alter table 사원 add column 사원번호2 int;
 update 사원 set 사원번호2 = 사원번호;
 
@@ -451,8 +451,8 @@ WHERE TABLE_SCHEMA = 'tuning' AND TABLE_NAME = '사원';
 SELECT *
 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS
 WHERE CONSTRAINT_SCHEMA = 'tuning';
-
--- CREATE UNIQUE INDEX idx_users_email ON 사원(사원번호2); 이미 만들었음
+-- 이미 만들었음음
+-- CREATE UNIQUE INDEX idx_users_email ON 사원(사원번호2);
 
 MySQL [tuning]> explain select * from 사원 where 사원번호2 = 100001;
 +----+-------------+--------+------------+-------+--------------------------------------+----------------------+---------+-------+------+----------+-------+
@@ -466,7 +466,7 @@ MySQL [tuning]> explain select * from 사원 where 사원번호2 = 100001;
 -- ######### 일반인덱스 ################
 -- 데이터가 unqiue 제약조건을 만족하지 못할경우에 일반 인덱스를 부여한다 
 
--- 기본문법 : ALTER TABLE 테이블명 ADD INDEX 인덱스이름 (컬럼명);
+--  기본문법 : ALTER TABLE 테이블명 ADD INDEX 인덱스이름 (컬럼명);
 
 alter table 사원 add index I_입사일자(입사일자);  -- 인덱스 추가하기 
 
@@ -499,12 +499,13 @@ update 사원 set 사원번호3 = 사원번호;
 alter table 사원 add constraint unique_사원번호3 unique(사원번호3);
 
 desc 사원;
-explain select * from 사원 where 사원번호3=30001;  -- type=ALL
-explain select * from 사원 where 사원번호3='30001'; -- type=const
+explain select * from 사원 where 사원번호3=30001;  -- ALL
+explain select * from 사원 where 사원번호3='30001'; -- const
 
 
 -- 인덱스가 없으므로 full scan을 한다 
 -- 인덱스중에 NonUnique - ref 
+select * from 사원 limit 20000, 10;
 explain select * from 사원 where 이름='Tzvetan'; -- full 
 create index I_이름 on 사원(이름);
 show index from 사원;
@@ -514,24 +515,24 @@ explain select * from 사원 where 이름 like 'Tz%'; -- range인덱스
 
 explain select * from 사원 where 이름 like '%tan'; -- not index full scan을 한다 
 
--- 예전방식 가급적 필드를 잘게 쪼개서 %문자열 상황이 안되도록 하는 방법을 취함
--- fulltext인덱스를 만들러서 사용하자자
+-- 예전방식)가급적 필드를 잘게 쪼개서 %문자열 상황이 안되도록 하는 방법을 취함 
+-- fulltext인덱스를 만들어서 사용하자 
 #####################
 fulltext 인덱스 - like연산자의 '%문자열' 이 인덱스를 안타니까 대신 만들었음 
 #######################
 -- fulltext 인덱스를 생성해야 한다. 
-drop index I_이름 on 사원; -- 이전 인덱스를 삭제하자자
+drop index I_이름 on 사원;-- 이전 인덱스를 삭제하자자
 
-SHOW TABLE STATUS LIKE '사원';-- 테이블의 상세 정보확인
+SHOW TABLE STATUS LIKE '사원'; -- 테이블의 상세 정보 확인 
 -- full text 인덱스 만들기 
 ALTER TABLE 사원 ADD FULLTEXT(이름);
--- 적용이 늦다고
--- 인덱스 최적화
-optimize table 사원;
+-- 적용이 늦다고 
+-- 인덱스 최적화를 반드시 해야 하는걸로   
+optimize table 사원; 
 
 explain SELECT *
 FROM 사원
-WHERE MATCH(이름) AGAINST('etan');
+WHERE MATCH(이름) AGAINST('Tavetan'); -- 정규식 
 
 #최소 단어 길이	기본 4자 이상 (변경 가능: ft_min_word_len)
 #불용어 목록	기본 리스트 존재 (stopwords)
@@ -544,7 +545,8 @@ WHERE MATCH(이름) AGAINST('etan');
 
 -- 가끔 컴퓨터에 따라서 한글문자가 문제될경우에 
 mysql -u root -p --default-character-set=utf8mb4
--- 테이블명과 필드명은은 가급적영어로
+-- 테이블명과 필드명은 가급적 영어로 하자 
+
 show index from 사원;  -- 입사일자에 인덱스가 있음
 select 입사일자 from 사원 limit 10; 
 
@@ -554,9 +556,8 @@ select substring(입사일자, 1,4) from 사원 limit 5;
 
 explain select * from 사원 where substring(입사일자, 1,4)='1985'; -- 필드에 함수를 사용함, full scan을 한다 
 
--- 원래있었던 인덱스를 지운다다
-alter table 사원 drop column 입사연도; 
-1.별도의 컬럼을 반드시 추가해야 한다 
+
+1.별도의 컬럼을 반드시 추가해야 한다 -- 입사연도라는 컬럼을 추가 
 ALTER TABLE 사원 ADD COLUMN 입사연도 VARCHAR(4) GENERATED ALWAYS AS (substring(입사일자,1,4)) STORED;
 
 --  alter table 사원 drop column 입사연도;
@@ -574,16 +575,28 @@ explain select * from 사원 where substring(입사일자, 1,4)='1985'; -- 필�
 -- 자주 사용하는 필드 WHERE 조건절이나 ORDER BY에서 없는건 고려 조차 하지 않는다. 
 -- 지나치게 인덱스가 많을 경우에는 시스템 성능이 저하된다. 
 -- 데이터가 많지 않은데도 속도가 느릴경우에는 프로그램 코드가 잘못되어 있을 경우가 더 많다
--- union all : 전체를 결합, 중복처리를 하지 않는다
--- union : 중복처리를 해서 가져온다. mysql 집합연산자 중에 minus
--- pivot 연산을 수행
--- 첫번재 쿼리실행결과 필드가 하나 
--- 두번재 쿼리실행결과 필드가 두개
+-- union all : 전체를 결합, 중복처리를 하지 않는다 
+-- union : 중복처리를 해서 가져온다. mysql 집합중 연산자 중에 minus 
+-- pivot 연산을 수행 
+첫번째 쿼리실행결과 필드가 하나   select 'all' column1, count(*) from emp;
+두번째 쿼리실행결과 필드가 두개   select '10' column1, count(*) from emp where deptno=10;
+세번째 쿼리실행결과 필드가 두개 
+네네 쿼리실행결과 필드가 두개 
+
+use mydb;
+ select 'all' deptno, count(*) from emp
+ union all 
+ select '10' deptno, count(*) from emp where deptno=10
+ union all
+ select '20' deptno, count(*) from emp where deptno=20
+ union all
+select '30' deptno, count(*) from emp where deptno=30;
+
 -- 쿼리는 가급적 한번에 가져와야 한다. UNION 등을 적절히 활용하는 것이 좋다. 
 -- 쿼리에서의 함수 사용은 전체 성능 저하를 가져온다. 외부 루프에서만 함수를 사용하자. 
 
-########## NULL값도 인덱스 검색이 된다.  오라클은 null값이 인덱스를 안탄탄다.
-use tuning
+########## NULL값도 인덱스 검색이 된다. 오라클은 null값이 인덱스를 안탄다. 
+use tuning 
 explain select * from 사원 WHERE 입사일자 IS NULL;
 
 explain select * from 사원 order by 사원번호;
@@ -595,11 +608,12 @@ explain select * from 사원 order by 사원번호 desc;
 ====================================================================================
 * SQL
 
-조인의 경우 - 실행계획, ansi 조인은 아니다.
--- 외부에서 바라볼때 inner join, outer join ,self join  
-MySQL에서의 join이고 표준은 아니다. (nested loop, hash join 등이 있다다)
+조인의 경우 - 실행계획, ansi 조인은 아니다. 
+-- 외부에서 바라볼때 inner join, outer join, self join 
+MySQL에서의 join이고 표준은 아니다. (nested loop, hash join 등이 있다)
 
 #전체 조인의 경우 아주 많은 시간이 필요하다 
+
 EXPLAIN SELECT 사원.사원번호, 사원.이름, 사원.성, 급여.연봉
 FROM 사원, 급여
 where 사원.사원번호 = 급여.사원번호;
@@ -664,17 +678,16 @@ MySQL은 기본적으로 Nested Loop Join을 사용하여 조인을 수행.
 ##############  두개의 join 방식 성능 테스트 ################
 
 use mydb;
-EXPLAIN ANALYZE
-SELECT E.ENAME, D.DNAME
+
+EXPLAIN ANALYZE SELECT E.ENAME, D.DNAME
 FROM EMP E
 JOIN DEPT D ON D.DEPTNO = E.DEPTNO;
-
-
+-- 드라이빙테이블이 emp 드리븐테이블이 dept 
 -- 더 빠름 
-EXPLAIN ANALYZE
-SELECT E.ENAME, D.DNAME
+EXPLAIN ANALYZE SELECT E.ENAME, D.DNAME
 FROM DEPT D
 JOIN EMP E ON D.DEPTNO = E.DEPTNO;
+-- 드라이빙테이블이 dept 드리븐테이블이 emp 
 
 ###########
 실행계획 
@@ -694,7 +707,8 @@ JOIN big_table2 B ON A.id = B.id;
 SELECT /*+ HASH_JOIN(B) */ *
 FROM A
 JOIN B ON A.id = B.id;
--- 힌트를 준다고 꼭 하지는 않는다다
+-- 힌트 준다고 꼭 하지는 않는다 
+
 -- join 튜닝 연습 쿼리 
 
 -- =========================
@@ -728,9 +742,9 @@ INSERT INTO dept VALUES
 
 
 -- 0~10까지 생성하기 
-      SELECT 0 UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3
-      UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6
-      UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9;
+SELECT 0 UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3
+UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6
+UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9;
 
 INSERT INTO emp
 SELECT
@@ -763,7 +777,7 @@ select * from emp limit 30;
 
 
 
--- 3. Nested Loop Join 확인 
+-- 3. Nested Loop Join 확인-- 전부조인 
 EXPLAIN FORMAT=TRADITIONAL
 SELECT *
 FROM dept d
@@ -981,14 +995,26 @@ SHOW PROFILE FOR QUERY 1; -- 특정 쿼리의 실행 시간 확인
 3) Performance Schema에서 실행 시간 확인 -- 현재버전 
 MySQL 8.0에서는 performance_schema를 사용하여 실행 시간을 분석할 수 있습니다.
 
-
-select * from emp limit 10; -- 실행계획이 아니라 실제 실행을 해봐야
--- per
+select * from emp limit 10;  -- 실행계획이 아니라 실제 실행을 해봐야 
+-- Performance Schema에 나온다 
 
 SELECT EVENT_ID, TIMER_START, TIMER_END, TIMER_WAIT
 FROM performance_schema.events_statements_history_long
 ORDER BY EVENT_ID DESC
 LIMIT 1;
+
+select * from performance_schema.setup_consumers
+where name in (
+  'events_statements_history',
+  'events_statements_history_long'
+);
+-- 둘다 yes가 되도록 해야 한다 
+update performance_schema.setup_consumers set enabled='YES'
+where name='events_statements_history';
+update performance_schema.setup_consumers set enabled='YES'
+where name='events_statements_history_long';
+
+
 #############################################################
 
 primary key를 추가한다 
